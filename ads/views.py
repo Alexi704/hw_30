@@ -1,5 +1,6 @@
-import json
-
+from ads.serializers import AdSerializer, CategorySerializer, AdCreateSerializer, AdUpdateSerializer, \
+    AdDeleteSerializer, CategoryDetailSerializer, CategoryCreateSerializer, CategoryUpdateSerializer, \
+    CategoryDeleteSerializer
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -9,6 +10,9 @@ from django.views.generic import DetailView, ListView, CreateView, UpdateView, D
 
 from hw30_project_config import settings
 from ads.models import Ad, Category
+from rest_framework.generics import RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
 from users.models import User
 
 
@@ -16,230 +20,99 @@ def index(request):
     return JsonResponse({"main page": "status ok"}, status=200)
 
 
-class CategoryView(ListView):
-    models = Category
+class CategoryViewSet(ListAPIView):
     queryset = Category.objects.all()
-
-    def get(self, request, *args, **kwargs):
-        super().get(request, *args, **kwargs)
-        self.object_list = self.object_list.order_by("name")
-
-        response = []
-        for category in self.object_list:
-            response.append({
-                "id": category.id,
-                "name": category.name,
-            })
-        return JsonResponse(response, safe=False, json_dumps_params={"ensure_ascii": False})
+    serializer_class = CategorySerializer
 
 
-class CategoryDetailView(DetailView):
-    model = Category
-
-    def get(self, request, *args, **kwargs):
-        category = self.get_object()
-        response = {
-            "id": category.id,
-            "name": category.name,
-        }
-        return JsonResponse(response, safe=False, json_dumps_params={"ensure_ascii": False})
+class CategoryDetailView(RetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryDetailSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryCreateView(CreateView):
-    model = Category
-    fields = ["name"]
-
-    def post(self, request, *args, **kwargs):
-        category_data = json.loads(request.body)
-
-        category = Category.objects.create(
-            name=category_data["name"]
-        )
-
-        response = {
-            "id": category.id,
-            "name": category.name,
-        }
-        return JsonResponse(response, json_dumps_params={"ensure_ascii": False})
+class CategoryCreateView(CreateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryCreateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryUpdateView(UpdateView):
-    model = Category
-    fields = ['name']
-
-    def patch(self, request, *args, **kwargs):
-        super().post(request, *args, **kwargs)
-
-        category_data = json.loads(request.body)
-        self.object.name = category_data['name']
-
-        self.object.save()
-
-        response = {
-            "id": self.object.id,
-            "name": self.object.name,
-        }
-        return JsonResponse(response, json_dumps_params={"ensure_ascii": False})
+class CategoryUpdateView(UpdateAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryUpdateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CategoryDeleteView(DeleteView):
-    model = Category
-    success_url = '/'
-
-    def delete(self, request, *args, **kwargs):
-        super().delete(request, *args, **kwargs)
-        return JsonResponse({"status": "ok/delete"}, status=200)
+class CategoryDeleteView(DestroyAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategoryDeleteSerializer
 
 
-class AdView(ListView):
-    models = Ad
+class AdListView(ListAPIView):
+    """
+    Получение списка всех объявлений.
+    """
     queryset = Ad.objects.all()
-
-    # def __int__(self, **kwargs):
-    #     super().__int__()
-    #     self.object_list = None
+    serializer_class = AdSerializer
 
     def get(self, request, *args, **kwargs):
-        super().get(request, *args, **kwargs)
 
-        categories = request.GET.getlist("cat", [])
-        if categories:
-            self.object_list = self.object_list.filter(category_id__in=categories)
+        self.queryset = self.queryset.select_related('author', 'category').order_by('-price')
 
-        if request.GET.get("text", None):
-            self.object_list = self.object_list.filter(name__icontains=request.GET.get("text"))
+        search_categories = request.GET.getlist("cat", [])
+        if search_categories:
+            self.queryset = self.queryset.filter(category_id__in=search_categories)
 
-        if request.GET.get("location", None):
-            self.object_list = self.object_list.filter(author__locations__name__icontains=request.GET.get('location'))
+        search_text = request.GET.get('text', None)
+        if search_text:
+            self.queryset = self.queryset.filter(name__icontains=search_text)
 
-        if request.GET.get("price_form", None):
-            self.object_list = self.object_list.filter(price__gte=request.GET.get("price_form"))
+        search_location = request.GET.get("location", None)
+        if search_location:
+            self.queryset = self.queryset.filter(author__locations__name__icontains=search_location)
+
+        if request.GET.get("price_from", None):
+            self.queryset = self.queryset.filter(price__gte=request.GET.get("price_from"))
 
         if request.GET.get("price_to", None):
-            self.object_list = self.object_list.filter(price__lte=request.GET.get("price_to"))
+            self.queryset = self.queryset.filter(price__lte=request.GET.get("price_to"))
 
-        self.object_list = self.object_list.select_related('author').order_by("-price")
-        paginator = Paginator(self.object_list, settings.REST_FRAMEWORK['PAGE_SIZE'])
+        self.queryset = self.queryset.select_related('author').order_by("-price")
+        paginator = Paginator(self.queryset, settings.REST_FRAMEWORK['PAGE_SIZE'])
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
-        ads = []
-        for ad in page_obj:
-            ads.append({
-                "id": ad.id,
-                "name": ad.name,
-                "author_id": ad.author_id,
-                "author": ad.author.first_name,
-                "price": ad.price,
-                "description": ad.description,
-                "is_published": ad.is_published,
-                "category_id": ad.category_id,
-                # "image": ad.image.url if ad.image else None,
-            })
-
-        response = {
-            "items": ads,
-            "num_page": page_obj.paginator.num_pages,
-            "total": page_obj.paginator.count
-        }
-        return JsonResponse(response, safe=False, json_dumps_params={"ensure_ascii": False})
+        return super().get(request, *args, **kwargs)
 
 
-class AdDetailView(DetailView):
-    model = Ad
-
-    def get(self, request, *args, **kwargs):
-        ad = self.get_object()
-        response = {
-            'id': ad.id,
-            'name': ad.name,
-            'author_id': ad.author_id,
-            'author': ad.author.first_name,
-            'price': ad.price,
-            'description': ad.description,
-            'is_published': ad.is_published,
-            'category_id': ad.category_id,
-            'image': ad.image.url if ad.image else None,
-        }
-        return JsonResponse(response, json_dumps_params={"ensure_ascii": False})
+class AdDetailView(RetrieveAPIView):
+    """
+    Получение объявления по id.
+    """
+    queryset = Ad.objects.all()
+    serializer_class = AdSerializer
+    # permission_classes = [IsAuthenticated]
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AdCreateView(CreateView):
-    model = Ad
-    fields = ['name', 'author', 'price', 'description', 'category']
-
-    def post(self, request, *args, **kwargs):
-        ad_data = json.loads(request.body)
-
-        author = get_object_or_404(User, id=ad_data["author_id"])
-        category = get_object_or_404(Category, id=ad_data["category_id"])
-
-        ad = Ad.objects.create(
-            name=ad_data['name'],
-            author=author,
-            price=ad_data['price'],
-            description=ad_data['description'],
-            is_published=ad_data['is_published'],
-            category=category,
-        )
-        response = {
-            'id': ad.id,
-            'name': ad.name,
-            'author_id': ad.author_id,
-            'author': ad.author.first_name,
-            'price': ad.price,
-            'description': ad.description,
-            'is_published': ad.is_published,
-            'category_id': ad.category_id,
-            'image': ad.image.url if ad.image else None,
-        }
-        return JsonResponse(response, json_dumps_params={"ensure_ascii": False})
+class AdCreateView(CreateAPIView):
+    """
+    Создание объявления.
+    """
+    queryset = Ad.objects.all()
+    serializer_class = AdCreateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AdUpdateView(UpdateView):
-    model = Ad
-    fields = ['name', 'author', 'price', 'description', 'category']
-
-    def patch(self, request, *args, **kwargs):
-        super().post(request, *args, **kwargs)
-
-        ad_data = json.loads(request.body)
-
-        self.object.name = ad_data['name']
-        self.object.price = ad_data['price']
-        self.object.description = ad_data['description']
-
-        self.object.author = get_object_or_404(User, ad_data['author_id'])
-        self.object.category = get_object_or_404(Category, ad_data['category_id'])
-
-        self.object.save()
-        response = {
-            'id': self.object.id,
-            'name': self.object.name,
-            'author_id': self.object.author_id,
-            'author': self.object.author.first_name,
-            'price': self.object.price,
-            'description': self.object.description,
-            'is_published': self.object.is_published,
-            'category_id': self.object.category_id,
-            'image': self.object.image.url if self.object.image else None,
-        }
-        return JsonResponse(response, safe=False, json_dumps_params={"ensure_ascii": False})
+class AdUpdateView(UpdateAPIView):
+    """
+    Обновление объявления.
+    """
+    queryset = Ad.objects.all()
+    serializer_class = AdUpdateSerializer
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AdDeleteView(DeleteView):
-    model = Ad
-    success_url = '/'
-
-    def delete(self, request, *args, **kwargs):
-        super().delete(request, *args, **kwargs)
-        return JsonResponse({"status": "ok/delete"}, status=200)
+class AdDeleteView(DestroyAPIView):
+    """
+    Удаление объявления.
+    """
+    queryset = Ad.objects.all()
+    serializer_class = AdDeleteSerializer
 
 
 @method_decorator(csrf_exempt, name='dispatch')

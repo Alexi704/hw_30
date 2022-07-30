@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
@@ -7,31 +8,33 @@ class Location(models.Model):
     lng = models.DecimalField(max_digits=8, decimal_places=6, null=True)
 
     class Meta:
-        verbose_name = 'Место'
-        verbose_name_plural = 'Места'
+        verbose_name = 'Локация'
+        verbose_name_plural = 'Локации'
 
     def __str__(self):
         return self.name
 
 
-class User(models.Model):
+class User(AbstractUser):
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+
     ROLES = [
-        ('member', 'Пользователь'),
-        ('moderator', 'Модеатор'),
-        ('admin', 'Админ'),
+        (USER, USER),
+        (MODERATOR, MODERATOR),
+        (ADMIN, ADMIN),
     ]
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    user_name = models.CharField(max_length=50)
-    password = models.CharField(max_length=50)
-    role = models.CharField(max_length=50, choices=ROLES, default='member')
-    age = models.PositiveIntegerField()
+
+    role = models.CharField(max_length=9, choices=ROLES, default=USER)
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
     locations = models.ManyToManyField(Location)
+
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ['user_name']
+        # ordering = ['username']
 
     def __str__(self):
-        return self.user_name
+        return self.username
