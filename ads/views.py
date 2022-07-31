@@ -1,19 +1,17 @@
+from ads.permissions import AdEditPermission, SelectionEditPermission
 from ads.serializers import AdSerializer, CategorySerializer, AdCreateSerializer, AdUpdateSerializer, \
     AdDeleteSerializer, CategoryDetailSerializer, CategoryCreateSerializer, CategoryUpdateSerializer, \
-    CategoryDeleteSerializer
+    CategoryDeleteSerializer, SelectionListSerializer, SelectionDetailSerializer, SelectionSerializer
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import UpdateView
 
 from hw30_project_config import settings
-from ads.models import Ad, Category
+from ads.models import Ad, Category, Selection
 from rest_framework.generics import RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
-from users.models import User
 
 
 def index(request):
@@ -88,7 +86,7 @@ class AdDetailView(RetrieveAPIView):
     """
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
 
 class AdCreateView(CreateAPIView):
@@ -105,6 +103,7 @@ class AdUpdateView(UpdateAPIView):
     """
     queryset = Ad.objects.all()
     serializer_class = AdUpdateSerializer
+    permission_classes = [IsAuthenticated, AdEditPermission]
 
 
 class AdDeleteView(DestroyAPIView):
@@ -113,6 +112,7 @@ class AdDeleteView(DestroyAPIView):
     """
     queryset = Ad.objects.all()
     serializer_class = AdDeleteSerializer
+    permission_classes = [IsAuthenticated, AdEditPermission]
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -137,3 +137,31 @@ class AdUpLoadImageView(UpdateView):
             'image': self.object.image.url if self.object.image else None,
         }
         return JsonResponse(response, safe=False, json_dumps_params={"ensure_ascii": False})
+
+
+class SelectionListView(ListAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionListSerializer
+
+
+class SelectionListlView(RetrieveAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionDetailSerializer
+
+
+class SelectionCreatelView(CreateAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class SelectionUpdatelView(UpdateAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated, SelectionEditPermission]
+
+
+class SelectionDeleteView(DestroyAPIView):
+    queryset = Selection.objects.all()
+    serializer_class = SelectionSerializer
+    permission_classes = [IsAuthenticated, SelectionEditPermission]

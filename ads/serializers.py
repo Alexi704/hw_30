@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ads.models import Ad, Category
+from ads.models import Ad, Category, Selection
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -54,3 +54,26 @@ class AdDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ad
         fields = ['id']
+
+
+class SelectionListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Selection
+        fields = '__all__'
+
+
+class SelectionDetailSerializer(serializers.ModelSerializer):
+    items = serializers.SlugRelatedField(
+        read_only=True,
+        many=True,
+        slug_field="name")
+
+    class Meta:
+        model = Selection
+        fields = '__all__'
+
+
+class SelectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Selection
+        fields = '__all__'
