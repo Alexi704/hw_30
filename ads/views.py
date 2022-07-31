@@ -19,34 +19,37 @@ def index(request):
 
 
 class CategoryViewSet(ListAPIView):
+    """Просмотр всех категорий"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
 class CategoryDetailView(RetrieveAPIView):
+    """Просмотр категории объявления по id категории"""
     queryset = Category.objects.all()
     serializer_class = CategoryDetailSerializer
 
 
 class CategoryCreateView(CreateAPIView):
+    """Создание новой категории"""
     queryset = Category.objects.all()
     serializer_class = CategoryCreateSerializer
 
 
 class CategoryUpdateView(UpdateAPIView):
+    """Обновление существующей категории"""
     queryset = Category.objects.all()
     serializer_class = CategoryUpdateSerializer
 
 
 class CategoryDeleteView(DestroyAPIView):
+    """Удаление категории"""
     queryset = Category.objects.all()
     serializer_class = CategoryDeleteSerializer
 
 
 class AdListView(ListAPIView):
-    """
-    Получение списка всех объявлений.
-    """
+    """Получение списка всех объявлений."""
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
 
@@ -81,35 +84,27 @@ class AdListView(ListAPIView):
 
 
 class AdDetailView(RetrieveAPIView):
-    """
-    Получение объявления по id.
-    """
+    """Получение объявления по id."""
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticated]
 
 
 class AdCreateView(CreateAPIView):
-    """
-    Создание объявления.
-    """
+    """Создание объявления."""
     queryset = Ad.objects.all()
     serializer_class = AdCreateSerializer
 
 
 class AdUpdateView(UpdateAPIView):
-    """
-    Обновление объявления.
-    """
+    """Обновление объявления."""
     queryset = Ad.objects.all()
     serializer_class = AdUpdateSerializer
     permission_classes = [IsAuthenticated, AdEditPermission]
 
 
 class AdDeleteView(DestroyAPIView):
-    """
-    Удаление объявления.
-    """
+    """Удаление объявления."""
     queryset = Ad.objects.all()
     serializer_class = AdDeleteSerializer
     permission_classes = [IsAuthenticated, AdEditPermission]
@@ -144,18 +139,18 @@ class SelectionListView(ListAPIView):
     serializer_class = SelectionListSerializer
 
 
-class SelectionListlView(RetrieveAPIView):
+class SelectionView(RetrieveAPIView):
     queryset = Selection.objects.all()
     serializer_class = SelectionDetailSerializer
 
 
-class SelectionCreatelView(CreateAPIView):
+class SelectionCreateView(CreateAPIView):
     queryset = Selection.objects.all()
     serializer_class = SelectionSerializer
     permission_classes = [IsAuthenticated]
 
 
-class SelectionUpdatelView(UpdateAPIView):
+class SelectionUpdateView(UpdateAPIView):
     queryset = Selection.objects.all()
     serializer_class = SelectionSerializer
     permission_classes = [IsAuthenticated, SelectionEditPermission]
