@@ -139,7 +139,7 @@ class SelectionListView(ListAPIView):
     serializer_class = SelectionListSerializer
 
 
-class SelectionView(RetrieveAPIView):
+class SelectionDetailView(RetrieveAPIView):
     queryset = Selection.objects.all()
     serializer_class = SelectionDetailSerializer
 
